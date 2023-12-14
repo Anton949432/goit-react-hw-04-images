@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
@@ -14,33 +14,32 @@ const App = () => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearchSubmit = (newQuery) => {
-    setQuery(newQuery);
-    setImages([]);
-    setPage(1);
-    fetchImages(newQuery, 1);
-  };
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (!query) return;
 
-  const fetchImages = async (query, pageNumber) => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        `${BASE_URL}?key=${API_KEY}&q=${query}&page=${pageNumber}&image_type=photo&orientation=horizontal&per_page=12`
-      );
-      setImages((prevImages) => [...prevImages, ...response.data.hits]);
-    } catch (error) {
-      console.error('Error fetching images:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        setIsLoading(true);
+        const response = await axios.get(
+          `${BASE_URL}?key=${API_KEY}&q=${query}&page=${page}&image_type=photo&orientation=horizontal&per_page=12`
+        );
+        setImages((prevImages) => [...prevImages, ...response.data.hits]);
+      } catch (error) {
+        console.error('Error fetching images:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchImages();
+
+  }, [query, page]);
 
   const loadMoreImages = () => {
     const nextPage = page + 1;
-    fetchImages(query, nextPage);
     setPage(nextPage);
   };
 
@@ -54,14 +53,16 @@ const App = () => {
 
   return (
     <div>
-      <Searchbar onSubmit={handleSearchSubmit} />
+      <Searchbar onSubmit={(newQuery) => { setQuery(newQuery); setImages([]); setPage(1); }} />
       <ImageGallery images={images} onImageClick={openModal} />
       {isLoading && <Loader />}
-      {images.length > 0 && !isLoading && <Button onClick={loadMoreImages} isVisible={images.length >= 12} />}
+      {images.length > 0 && <Button onClick={loadMoreImages} isVisible={images.length >= 12} />}
       {selectedImage && <Modal {...selectedImage} onCloseModal={closeModal} />}
     </div>
   );
 };
 
 export default App;
+
+
 
